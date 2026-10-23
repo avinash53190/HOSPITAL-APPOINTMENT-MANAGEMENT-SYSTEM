@@ -51,10 +51,9 @@ CREATE TABLE IF NOT EXISTS admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Seed Default Admin: username 'admin', password 'admin123' (BCrypt hashed)
-INSERT INTO admins (username, password_hash)
-SELECT 'admin', '$2a$10$w0u3V.Xn3F7E50y0.qFk7eYgTjZ/YkL6rN818bI7tN.o6lKjX21e'
-WHERE NOT EXISTS (SELECT 1 FROM admins WHERE username = 'admin');
+-- Note: Initial administrator accounts are NOT seeded with default passwords.
+-- Set ADMIN_USERNAME and ADMIN_PASSWORD environment variables or use the
+-- first-time admin setup process described in the README.
 
 -- Sample Doctors for immediate testing
 INSERT INTO doctors (name, specialization, available)

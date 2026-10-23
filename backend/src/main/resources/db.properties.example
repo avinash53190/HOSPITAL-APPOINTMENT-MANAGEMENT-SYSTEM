@@ -1,9 +1,17 @@
+# ========================================================
 # Database Connection Configuration Template
-# Copy this file to db-local.properties or edit db.properties for your local MySQL setup
+# ========================================================
+# Copy this file to:
+#   backend/src/main/resources/db-local.properties
+# (This file is tracked by .gitignore to protect your credentials)
+
 db.url=jdbc:mysql://localhost:3306/hospital_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
 db.user=root
 db.password=YOUR_MYSQL_PASSWORD_HERE
 db.driver=com.mysql.cj.jdbc.Driver
 
-# Fallback in-memory database will automatically activate if local MySQL is unreachable
-
+# Optional: Initial Administrator Credentials for First-Time Setup
+# If no administrator exists in the database, these credentials will be used
+# to create the initial admin account securely with BCrypt hashing:
+# admin.initial.username=admin
+# admin.initial.password=YOUR_STRONG_ADMIN_PASSWORD

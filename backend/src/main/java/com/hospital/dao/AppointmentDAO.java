@@ -13,8 +13,11 @@ import java.util.List;
 
 /**
  * Data Access Object (DAO) for Appointment operations.
- * Demonstrates JDBC prepared statements, transaction management, connection handling,
- * and parameterized SQL queries to prevent SQL Injection.
+ * Demonstrates:
+ * - Database-level concurrency control via ACID Transactions and pessimistic locking (SELECT ... FOR UPDATE).
+ * - Multi-process race condition prevention (independent of JVM synchronization).
+ * - Authorization enforcement at the query level (ownership verification).
+ * - Parameterized queries preventing SQL Injection.
  */
 public class AppointmentDAO {
 
@@ -34,38 +37,52 @@ public class AppointmentDAO {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[AppointmentDAO] Slot check failed: " + e.getMessage());
         }
         return false;
     }
 
     /**
-     * Books a new appointment with transaction management.
-     * Checks for conflicting bookings atomically within a transaction to prevent race conditions.
+     * Books a new appointment with strict database-level concurrency control.
+     * Uses ACID transaction with pessimistic row-locking on the target doctor (SELECT ... FOR UPDATE)
+     * to ensure that concurrent booking attempts across threads or multiple server instances
+     * cannot reserve the exact same doctor, date, and time.
      */
-    public synchronized boolean bookAppointment(Appointment appointment) {
+    public boolean bookAppointment(Appointment appointment) {
+        String lockDoctorSql = "SELECT doctor_id FROM doctors WHERE doctor_id = ? FOR UPDATE";
         String checkSql = "SELECT COUNT(*) FROM appointments WHERE doctor_id = ? AND appointment_date = ? AND appointment_time = ? AND status = 'CONFIRMED'";
         String insertSql = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time, status) VALUES (?, ?, ?, ?, ?)";
-        
+
         Connection conn = null;
         try {
             conn = DBConnection.getConnection();
-            conn.setAutoCommit(false); // Begin transaction
+            conn.setAutoCommit(false); // Begin ACID Transaction
 
-            // Step 1: Check slot within transaction
+            // Step 1: Acquire database-level exclusive row lock on target doctor
+            try (PreparedStatement lockPs = conn.prepareStatement(lockDoctorSql)) {
+                lockPs.setInt(1, appointment.getDoctorId());
+                try (ResultSet rs = lockPs.executeQuery()) {
+                    if (!rs.next()) {
+                        conn.rollback(); // Doctor not found
+                        return false;
+                    }
+                }
+            }
+
+            // Step 2: Check slot availability within the protected database transaction
             try (PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
                 checkPs.setInt(1, appointment.getDoctorId());
                 checkPs.setDate(2, appointment.getAppointmentDate());
                 checkPs.setString(3, appointment.getAppointmentTime().trim());
                 try (ResultSet rs = checkPs.executeQuery()) {
                     if (rs.next() && rs.getInt(1) > 0) {
-                        conn.rollback(); // Conflict detected; abort
+                        conn.rollback(); // Conflict detected; abort atomically
                         return false;
                     }
                 }
             }
 
-            // Step 2: Insert confirmed booking
+            // Step 3: Insert confirmed booking atomically
             try (PreparedStatement insertPs = conn.prepareStatement(insertSql)) {
                 insertPs.setInt(1, appointment.getPatientId());
                 insertPs.setInt(2, appointment.getDoctorId());
@@ -75,7 +92,7 @@ public class AppointmentDAO {
                 int affected = insertPs.executeUpdate();
 
                 if (affected > 0) {
-                    conn.commit(); // Commit transaction successfully
+                    conn.commit(); // Commit transaction and release database lock
                     return true;
                 } else {
                     conn.rollback();
@@ -87,10 +104,10 @@ public class AppointmentDAO {
                 try {
                     conn.rollback();
                 } catch (SQLException ex) {
-                    ex.printStackTrace();
+                    System.err.println("[AppointmentDAO] Rollback failed: " + ex.getMessage());
                 }
             }
-            e.printStackTrace();
+            System.err.println("[AppointmentDAO] Booking transaction error: " + e.getMessage());
             return false;
         } finally {
             if (conn != null) {
@@ -98,7 +115,7 @@ public class AppointmentDAO {
                     conn.setAutoCommit(true);
                     conn.close();
                 } catch (SQLException e) {
-                    e.printStackTrace();
+                    System.err.println("[AppointmentDAO] Connection reset failed: " + e.getMessage());
                 }
             }
         }
@@ -106,7 +123,7 @@ public class AppointmentDAO {
 
     /**
      * Retrieves all appointments for a specific logged-in patient.
-     * Joins with doctors table to display doctor name and specialization.
+     * Enforces user authorization by filtering strictly by patientId.
      */
     public List<Appointment> getAppointmentsByPatient(int patientId) {
         List<Appointment> list = new ArrayList<>();
@@ -137,14 +154,13 @@ public class AppointmentDAO {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[AppointmentDAO] Patient appointments query failed: " + e.getMessage());
         }
         return list;
     }
 
     /**
-     * Retrieves all appointments in the system for Admin view.
-     * Joins with both doctors and patients tables.
+     * Retrieves all appointments across the hospital for Administrator view.
      */
     public List<Appointment> getAllAppointments() {
         List<Appointment> list = new ArrayList<>();
@@ -176,14 +192,15 @@ public class AppointmentDAO {
                 list.add(appt);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[AppointmentDAO] Admin appointments query failed: " + e.getMessage());
         }
         return list;
     }
 
     /**
      * Allows a patient to cancel their own appointment.
-     * Uses both appointment_id AND patient_id to enforce authorization at the database level!
+     * Enforces ownership strictly at the SQL level via (appointment_id = ? AND patient_id = ?).
+     * Prevents any patient from cancelling another patient's appointment.
      */
     public boolean cancelAppointmentByPatient(int appointmentId, int patientId) {
         String sql = "UPDATE appointments SET status = 'CANCELLED' WHERE appointment_id = ? AND patient_id = ?";
@@ -193,13 +210,13 @@ public class AppointmentDAO {
             ps.setInt(2, patientId);
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[AppointmentDAO] Cancel appointment failed: " + e.getMessage());
             return false;
         }
     }
 
     /**
-     * Returns the total appointment count for a given patient.
+     * Returns total appointment count for a given patient.
      */
     public int getAppointmentCountByPatient(int patientId) {
         String sql = "SELECT COUNT(*) FROM appointments WHERE patient_id = ?";
@@ -212,7 +229,7 @@ public class AppointmentDAO {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("[AppointmentDAO] Count query failed: " + e.getMessage());
         }
         return 0;
     }

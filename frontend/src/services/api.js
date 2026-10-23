@@ -39,6 +39,13 @@ export const api = {
       body: JSON.stringify({ email, password, role })
     }),
 
+  // First-Time Administrator Setup
+  setupAdmin: (username, password) =>
+    fetchJSON(`${API_BASE}/admin/setup`, {
+      method: 'POST',
+      body: JSON.stringify({ username, password })
+    }),
+
   // Patient Registration
   register: (name, email, phone, password) =>
     fetchJSON(`${API_BASE}/register`, {

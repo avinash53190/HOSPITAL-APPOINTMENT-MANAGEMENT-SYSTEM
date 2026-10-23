@@ -3,6 +3,7 @@ package com.hospital.servlet;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.hospital.dao.AppointmentDAO;
+import com.hospital.util.DBConnection;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -13,10 +14,11 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 
 /**
- * Servlet to check active session state.
+ * Servlet to check active session state and database persistence status.
  * URL: /api/auth/me
  * Method: GET
- * React calls this on initial page load to verify if user has an active HttpSession.
+ * React calls this on initial page load to verify if user has an active HttpSession
+ * and to discover whether persistent MySQL or demo in-memory H2 is currently active.
  */
 @WebServlet("/api/auth/me")
 public class SessionServlet extends HttpServlet {
@@ -32,14 +34,20 @@ public class SessionServlet extends HttpServlet {
 
         HttpSession session = request.getSession(false);
 
+        JsonObject res = new JsonObject();
+        // Provide transparent database status
+        res.addProperty("databaseType", DBConnection.getDatabaseType());
+        res.addProperty("isPersistent", !DBConnection.isFallbackActive());
+        res.addProperty("databaseNotice", DBConnection.getDatabaseStatusNotice());
+
         if (session == null || session.getAttribute("role") == null) {
+            res.addProperty("authenticated", false);
             response.setStatus(HttpServletResponse.SC_OK);
-            response.getWriter().write("{\"authenticated\":false}");
+            response.getWriter().write(gson.toJson(res));
             return;
         }
 
         String role = (String) session.getAttribute("role");
-        JsonObject res = new JsonObject();
         res.addProperty("authenticated", true);
         res.addProperty("role", role);
 
@@ -65,4 +73,3 @@ public class SessionServlet extends HttpServlet {
         response.getWriter().write(gson.toJson(res));
     }
 }
-

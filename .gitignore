@@ -1,29 +1,37 @@
-# React frontend
+# React Frontend
 frontend/node_modules/
+node_modules/
 frontend/dist/
+dist/
 
-# Java backend
+# Java Backend & Maven
 backend/target/
+target/
 *.class
 
-# Environment variables and secrets
+# Temporary Server & Runtime Files
+*.log
+backend-start.log
+frontend-start.log
+backend/tomcat.*/
+tomcat.*/
+backend/work/
+work/
+backend/temp/
+temp/
+
+# Secrets & Local Configuration
 .env
 .env.*
 !.env.example
 *db-local.properties
+backend/src/main/resources/db-local.properties
 
-# IDE files
+# IDE & Editor Files
 .vscode/
 .idea/
 *.iml
 
-# Logs & temp files
-*.log
-backend/tomcat.*/
-backend/work/
-backend/temp/
-
-# Operating system
+# Operating System Files
 .DS_Store
-Thumbs.db
 Thumbs.db

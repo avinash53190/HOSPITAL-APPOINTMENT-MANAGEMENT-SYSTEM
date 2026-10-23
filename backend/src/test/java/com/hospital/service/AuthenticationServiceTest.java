@@ -1,5 +1,6 @@
 package com.hospital.service;
 
+import com.hospital.dao.AdminDAO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mindrot.jbcrypt.BCrypt;
@@ -12,9 +13,11 @@ import static org.junit.jupiter.api.Assertions.*;
 public class AuthenticationServiceTest {
 
     private AuthService authService;
+    private AdminDAO adminDAO;
 
     @BeforeEach
     public void setUp() {
+        adminDAO = new AdminDAO();
         authService = new AuthenticationServiceImpl();
     }
 
@@ -32,14 +35,19 @@ public class AuthenticationServiceTest {
 
     @Test
     public void testAdminAuthentication() {
-        // Default seeded admin credentials: admin / admin123
-        boolean valid = authService.authenticateAdmin("admin", "admin123");
+        // Create a test administrator dynamically with BCrypt hashing
+        String testUser = "sys_admin_" + System.currentTimeMillis();
+        String testPass = "SecureAdminPass#2026";
+        boolean created = adminDAO.createAdmin(testUser, testPass);
+        assertTrue(created, "Administrator account creation must succeed");
+
+        boolean valid = authService.authenticateAdmin(testUser, testPass);
         assertTrue(valid, "Admin with valid credentials must authenticate successfully");
 
-        boolean invalidPassword = authService.authenticateAdmin("admin", "wrongpassword");
+        boolean invalidPassword = authService.authenticateAdmin(testUser, "wrongpassword");
         assertFalse(invalidPassword, "Admin with invalid password must fail authentication");
 
-        boolean invalidUser = authService.authenticateAdmin("unknown_admin", "admin123");
+        boolean invalidUser = authService.authenticateAdmin("unknown_admin_" + System.currentTimeMillis(), testPass);
         assertFalse(invalidUser, "Non-existent admin user must fail authentication");
     }
 
@@ -51,4 +59,3 @@ public class AuthenticationServiceTest {
         assertNull(authService.authenticatePatient("patient@test.com", null));
     }
 }
-

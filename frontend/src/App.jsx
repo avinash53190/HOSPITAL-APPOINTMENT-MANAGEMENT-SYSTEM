@@ -16,11 +16,16 @@ export default function App() {
     role: null,
     user: null
   });
+  const [dbInfo, setDbInfo] = useState({
+    isPersistent: true,
+    type: 'MYSQL',
+    notice: ''
+  });
   const [activeTab, setActiveTab] = useState('home');
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [message, setMessage] = useState(null); // { type: 'success' | 'error', text: '' }
 
-  // Check active session on initial load
+  // Check active session and database persistence mode on initial load
   useEffect(() => {
     checkActiveSession();
   }, []);
@@ -28,14 +33,23 @@ export default function App() {
   const checkActiveSession = async () => {
     try {
       const data = await api.checkSession();
-      if (data && data.authenticated) {
-        setAuth({
-          authenticated: true,
-          role: data.role,
-          user: data.user
-        });
-      } else {
-        setAuth({ authenticated: false, role: null, user: null });
+      if (data) {
+        if (data.isPersistent !== undefined) {
+          setDbInfo({
+            isPersistent: data.isPersistent,
+            type: data.databaseType || 'MYSQL',
+            notice: data.databaseNotice || ''
+          });
+        }
+        if (data.authenticated) {
+          setAuth({
+            authenticated: true,
+            role: data.role,
+            user: data.user
+          });
+        } else {
+          setAuth({ authenticated: false, role: null, user: null });
+        }
       }
     } catch (err) {
       // Backend not yet reachable or no session
@@ -165,6 +179,23 @@ export default function App() {
         activeTab={activeTab}
         onLogout={handleLogout}
       />
+
+      {/* Database Persistence Mode Banner */}
+      {dbInfo && !dbInfo.isPersistent && (
+        <div style={{
+          background: '#FFFBEB',
+          borderBottom: '1px solid #FDE68A',
+          color: '#92400E',
+          padding: '8px 24px',
+          fontSize: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px'
+        }}>
+          <span>⚠️ <strong>Demo Mode (In-Memory Database):</strong> Data is stored in-memory for testing and will reset when server stops. Configure MySQL in <code>db-local.properties</code> for persistent storage.</span>
+        </div>
+      )}
 
       <main className="main-content">
         {/* Flash Notification Banner */}

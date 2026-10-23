@@ -27,5 +27,14 @@ public interface AuthService {
      * Authenticates administrator credentials.
      */
     boolean authenticateAdmin(String username, String password);
-}
 
+    /**
+     * Checks if at least one administrator account exists in the system.
+     */
+    boolean hasAnyAdmin();
+
+    /**
+     * Sets up the initial administrator account. Allowed ONLY when no admin exists.
+     */
+    boolean setupInitialAdmin(String username, String rawPassword);
+}

@@ -68,4 +68,14 @@ public class AuthenticationServiceImpl implements AuthService {
         // Authenticates admin using BCrypt hash comparison against database
         return adminDAO.authenticate(username, password);
     }
+
+    @Override
+    public boolean hasAnyAdmin() {
+        return adminDAO.hasAnyAdmin();
+    }
+
+    @Override
+    public boolean setupInitialAdmin(String username, String rawPassword) {
+        return adminDAO.setupInitialAdmin(username, rawPassword);
+    }
 }
