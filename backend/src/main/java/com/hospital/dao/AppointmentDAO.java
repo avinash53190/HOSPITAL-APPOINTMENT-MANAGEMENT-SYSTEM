@@ -13,6 +13,8 @@ import java.util.List;
 
 /**
  * Data Access Object (DAO) for Appointment operations.
+ * Demonstrates JDBC prepared statements, transaction management, connection handling,
+ * and parameterized SQL queries to prevent SQL Injection.
  */
 public class AppointmentDAO {
 
@@ -38,21 +40,67 @@ public class AppointmentDAO {
     }
 
     /**
-     * Books a new appointment in MySQL.
+     * Books a new appointment with transaction management.
+     * Checks for conflicting bookings atomically within a transaction to prevent race conditions.
      */
-    public boolean bookAppointment(Appointment appointment) {
-        String sql = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time, status) VALUES (?, ?, ?, ?, ?)";
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, appointment.getPatientId());
-            ps.setInt(2, appointment.getDoctorId());
-            ps.setDate(3, appointment.getAppointmentDate());
-            ps.setString(4, appointment.getAppointmentTime().trim());
-            ps.setString(5, "CONFIRMED");
-            return ps.executeUpdate() > 0;
+    public synchronized boolean bookAppointment(Appointment appointment) {
+        String checkSql = "SELECT COUNT(*) FROM appointments WHERE doctor_id = ? AND appointment_date = ? AND appointment_time = ? AND status = 'CONFIRMED'";
+        String insertSql = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, appointment_time, status) VALUES (?, ?, ?, ?, ?)";
+        
+        Connection conn = null;
+        try {
+            conn = DBConnection.getConnection();
+            conn.setAutoCommit(false); // Begin transaction
+
+            // Step 1: Check slot within transaction
+            try (PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
+                checkPs.setInt(1, appointment.getDoctorId());
+                checkPs.setDate(2, appointment.getAppointmentDate());
+                checkPs.setString(3, appointment.getAppointmentTime().trim());
+                try (ResultSet rs = checkPs.executeQuery()) {
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        conn.rollback(); // Conflict detected; abort
+                        return false;
+                    }
+                }
+            }
+
+            // Step 2: Insert confirmed booking
+            try (PreparedStatement insertPs = conn.prepareStatement(insertSql)) {
+                insertPs.setInt(1, appointment.getPatientId());
+                insertPs.setInt(2, appointment.getDoctorId());
+                insertPs.setDate(3, appointment.getAppointmentDate());
+                insertPs.setString(4, appointment.getAppointmentTime().trim());
+                insertPs.setString(5, "CONFIRMED");
+                int affected = insertPs.executeUpdate();
+
+                if (affected > 0) {
+                    conn.commit(); // Commit transaction successfully
+                    return true;
+                } else {
+                    conn.rollback();
+                    return false;
+                }
+            }
         } catch (SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    ex.printStackTrace();
+                }
+            }
             e.printStackTrace();
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 
@@ -169,4 +217,3 @@ public class AppointmentDAO {
         return 0;
     }
 }
-

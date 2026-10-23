@@ -4,62 +4,43 @@ import java.sql.Timestamp;
 
 /**
  * Model class representing a Patient.
- * Demonstrates: Private encapsulation, parameterized constructors,
- * getters and setters, and toString() method.
+ * Extends User to demonstrate:
+ * - OOP Inheritance (Patient is-a User)
+ * - Encapsulation (private fields with accessor methods)
+ * - Constructor chaining via super()
+ * - Method overriding (toString)
  */
-public class Patient {
-    private int patientId;
-    private String name;
-    private String email;
+public class Patient extends User {
     private String phone;
     private String passwordHash;
-    private Timestamp createdAt;
 
     // Default constructor
     public Patient() {
+        super();
+        setRole("PATIENT");
     }
 
     // Parameterized constructor for registration
     public Patient(String name, String email, String phone, String passwordHash) {
-        this.name = name;
-        this.email = email;
+        super(name, email, "PATIENT");
         this.phone = phone;
         this.passwordHash = passwordHash;
     }
 
     // Full constructor
     public Patient(int patientId, String name, String email, String phone, String passwordHash, Timestamp createdAt) {
-        this.patientId = patientId;
-        this.name = name;
-        this.email = email;
+        super(patientId, name, email, "PATIENT", createdAt);
         this.phone = phone;
         this.passwordHash = passwordHash;
-        this.createdAt = createdAt;
     }
 
-    // Getters and Setters
+    // Backwards-compatible aliases for patientId
     public int getPatientId() {
-        return patientId;
+        return getId();
     }
 
     public void setPatientId(int patientId) {
-        this.patientId = patientId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
+        setId(patientId);
     }
 
     public String getPhone() {
@@ -67,7 +48,7 @@ public class Patient {
     }
 
     public void setPhone(String phone) {
-        this.phone = phone;
+        this.phone = (phone != null) ? phone.trim() : null;
     }
 
     public String getPasswordHash() {
@@ -78,22 +59,14 @@ public class Patient {
         this.passwordHash = passwordHash;
     }
 
-    public Timestamp getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Timestamp createdAt) {
-        this.createdAt = createdAt;
-    }
-
     @Override
     public String toString() {
         return "Patient{" +
-                "patientId=" + patientId +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
+                "patientId=" + getId() +
+                ", name='" + getName() + '\'' +
+                ", email='" + getEmail() + '\'' +
                 ", phone='" + phone + '\'' +
+                ", role='" + getRole() + '\'' +
                 '}';
     }
 }
-

@@ -38,7 +38,13 @@ export default function DoctorList({ onSelectDoctor, onNavigate, auth }) {
     'Pediatrics',
     'Orthopedics',
     'General Medicine',
-    'Neurology'
+    'Neurology',
+    'Obstetrics & Gynecology',
+    'Gastroenterology',
+    'Ophthalmology',
+    'Psychiatry',
+    'Pulmonology',
+    'Oncology'
   ];
 
   return (
@@ -120,7 +126,17 @@ export default function DoctorList({ onSelectDoctor, onNavigate, auth }) {
               <div>
                 <div className="doc-card-top">
                   <div className="doc-avatar">
-                    <Stethoscope size={22} />
+                    {doc.profileImage ? (
+                      <img
+                        src={doc.profileImage}
+                        alt={`${doc.name} profile`}
+                        onError={(event) => {
+                          event.currentTarget.style.display = 'none';
+                          event.currentTarget.nextElementSibling.style.display = 'block';
+                        }}
+                      />
+                    ) : null}
+                    <Stethoscope size={22} style={{ display: doc.profileImage ? 'none' : 'block' }} />
                   </div>
                   <div className="doc-info">
                     <h3>{doc.name}</h3>

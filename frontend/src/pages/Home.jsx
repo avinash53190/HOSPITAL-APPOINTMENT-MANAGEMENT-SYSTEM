@@ -197,7 +197,17 @@ export default function Home({ auth, onNavigate, onSelectDoctor }) {
                 <div>
                   <div className="doc-card-top">
                     <div className="doc-avatar">
-                      <Stethoscope size={22} />
+                      {doc.profileImage ? (
+                        <img
+                          src={doc.profileImage}
+                          alt={`${doc.name} profile`}
+                          onError={(event) => {
+                            event.currentTarget.style.display = 'none';
+                            event.currentTarget.nextElementSibling.style.display = 'block';
+                          }}
+                        />
+                      ) : null}
+                      <Stethoscope size={22} style={{ display: doc.profileImage ? 'none' : 'block' }} />
                     </div>
                     <div className="doc-info">
                       <h3>{doc.name}</h3>

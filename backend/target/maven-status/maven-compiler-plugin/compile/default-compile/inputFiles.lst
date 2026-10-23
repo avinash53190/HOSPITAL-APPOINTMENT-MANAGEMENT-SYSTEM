@@ -1,3 +1,4 @@
+D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\dao\AdminDAO.java
 D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\dao\AppointmentDAO.java
 D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\dao\DoctorDAO.java
 D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\dao\PatientDAO.java
@@ -5,6 +6,7 @@ D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital
 D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\model\Appointment.java
 D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\model\Doctor.java
 D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\model\Patient.java
+D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\model\User.java
 D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\server\TomcatServer.java
 D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\service\AuthenticationServiceImpl.java
 D:\jvm\hospital-appointment-management-system\backend\src\main\java\com\hospital\service\AuthService.java

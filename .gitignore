@@ -1,0 +1,29 @@
+# React frontend
+frontend/node_modules/
+frontend/dist/
+
+# Java backend
+backend/target/
+*.class
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*db-local.properties
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Logs & temp files
+*.log
+backend/tomcat.*/
+backend/work/
+backend/temp/
+
+# Operating system
+.DS_Store
+Thumbs.db
+Thumbs.db

@@ -57,5 +57,17 @@ public class ValidationUtil {
             return false;
         }
     }
+
+    /**
+     * Escapes HTML special characters to prevent Cross-Site Scripting (XSS).
+     */
+    public static String escapeHtml(String input) {
+        if (input == null) return "";
+        return input.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&#x27;");
+    }
 }
 

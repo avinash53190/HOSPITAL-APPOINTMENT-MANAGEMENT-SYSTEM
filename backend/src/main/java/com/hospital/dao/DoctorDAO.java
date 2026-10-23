@@ -17,7 +17,7 @@ public class DoctorDAO {
 
     public List<Doctor> getAllDoctors() {
         List<Doctor> list = new ArrayList<>();
-        String sql = "SELECT doctor_id, name, specialization, available FROM doctors ORDER BY name ASC";
+        String sql = "SELECT doctor_id, name, specialization, available, profile_image FROM doctors ORDER BY name ASC";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -26,7 +26,8 @@ public class DoctorDAO {
                         rs.getInt("doctor_id"),
                         rs.getString("name"),
                         rs.getString("specialization"),
-                        rs.getBoolean("available")
+                        rs.getBoolean("available"),
+                        rs.getString("profile_image")
                 ));
             }
         } catch (SQLException e) {
@@ -36,7 +37,7 @@ public class DoctorDAO {
     }
 
     public Doctor getDoctorById(int doctorId) {
-        String sql = "SELECT doctor_id, name, specialization, available FROM doctors WHERE doctor_id = ?";
+        String sql = "SELECT doctor_id, name, specialization, available, profile_image FROM doctors WHERE doctor_id = ?";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, doctorId);
@@ -46,7 +47,8 @@ public class DoctorDAO {
                             rs.getInt("doctor_id"),
                             rs.getString("name"),
                             rs.getString("specialization"),
-                            rs.getBoolean("available")
+                            rs.getBoolean("available"),
+                            rs.getString("profile_image")
                     );
                 }
             }
@@ -70,4 +72,3 @@ public class DoctorDAO {
         }
     }
 }
-

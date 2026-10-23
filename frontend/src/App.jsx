@@ -77,7 +77,13 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
-        return <Home auth={auth} onNavigate={setActiveTab} />;
+        return (
+          <Home
+            auth={auth}
+            onNavigate={setActiveTab}
+            onSelectDoctor={setSelectedDoctor}
+          />
+        );
 
       case 'doctors':
         return (
@@ -141,7 +147,13 @@ export default function App() {
         );
 
       default:
-        return <Home auth={auth} onNavigate={setActiveTab} />;
+        return (
+          <Home
+            auth={auth}
+            onNavigate={setActiveTab}
+            onSelectDoctor={setSelectedDoctor}
+          />
+        );
     }
   };
 
@@ -182,4 +194,3 @@ export default function App() {
     </>
   );
 }
-

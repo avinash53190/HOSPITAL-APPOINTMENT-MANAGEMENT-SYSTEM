@@ -85,7 +85,8 @@ public class DBConnection {
                         "doctor_id INT AUTO_INCREMENT PRIMARY KEY, " +
                         "name VARCHAR(100) NOT NULL, " +
                         "specialization VARCHAR(100) NOT NULL, " +
-                        "available BOOLEAN NOT NULL DEFAULT TRUE)");
+                        "available BOOLEAN NOT NULL DEFAULT TRUE, " +
+                        "profile_image VARCHAR(500))");
 
                 st.execute("CREATE TABLE IF NOT EXISTS appointments (" +
                         "appointment_id INT AUTO_INCREMENT PRIMARY KEY, " +
@@ -96,13 +97,25 @@ public class DBConnection {
                         "status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMED', " +
                         "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 
+                st.execute("CREATE TABLE IF NOT EXISTS admins (" +
+                        "admin_id INT AUTO_INCREMENT PRIMARY KEY, " +
+                        "username VARCHAR(100) NOT NULL UNIQUE, " +
+                        "password_hash VARCHAR(255) NOT NULL, " +
+                        "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
                 st.execute("MERGE INTO doctors KEY(doctor_id) VALUES " +
-                        "(1, 'Dr. Rajesh Sharma', 'Cardiology', TRUE), " +
-                        "(2, 'Dr. Priya Verma', 'Dermatology', TRUE), " +
-                        "(3, 'Dr. Amit Patel', 'Pediatrics', TRUE), " +
-                        "(4, 'Dr. Sneha Kulkarni', 'Orthopedics', TRUE), " +
-                        "(5, 'Dr. Vikram Rao', 'General Medicine', TRUE), " +
-                        "(6, 'Dr. Ananya Sen', 'Neurology', TRUE)");
+                        "(1, 'Dr. Rajesh Sharma', 'Cardiology', TRUE, NULL), " +
+                        "(2, 'Dr. Priya Verma', 'Dermatology', TRUE, NULL), " +
+                        "(3, 'Dr. Amit Patel', 'Pediatrics', TRUE, NULL), " +
+                        "(4, 'Dr. Sneha Kulkarni', 'Orthopedics', TRUE, NULL), " +
+                        "(5, 'Dr. Vikram Rao', 'General Medicine', TRUE, NULL), " +
+                        "(6, 'Dr. Ananya Sen', 'Neurology', TRUE, NULL), " +
+                        "(7, 'Dr. Meera Iyer', 'Obstetrics & Gynecology', TRUE, NULL), " +
+                        "(8, 'Dr. Arjun Malhotra', 'Gastroenterology', TRUE, NULL), " +
+                        "(9, 'Dr. Kavya Nair', 'Ophthalmology', TRUE, NULL), " +
+                        "(10, 'Dr. Rohan Mehta', 'Psychiatry', TRUE, NULL), " +
+                        "(11, 'Dr. Neha Kapoor', 'Pulmonology', TRUE, NULL), " +
+                        "(12, 'Dr. Sameer Joshi', 'Oncology', TRUE, NULL)");
                 fallbackInitialized = true;
                 System.out.println("[DBConnection] Database schema and 6 sample doctors ready for use!");
             }

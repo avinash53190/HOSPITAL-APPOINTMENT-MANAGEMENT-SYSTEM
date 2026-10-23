@@ -1,40 +1,42 @@
 # Hospital Appointment Management System
 ### MCA 1st Semester — Java and Web Programming Practical Project
+**Platform:** "CityCare Hospital" Modern Healthcare Web Application
 
 ---
 
 ## 1. Project Introduction & Objectives
 
-The **Hospital Appointment Management System** is a complete, lightweight, full-stack web application developed for MCA first-semester students. It streamlines doctor appointments, patient accounts, and administrative oversight.
+The **Hospital Appointment Management System** is a complete, lightweight, full-stack web application developed for MCA first-semester students. It provides a secure, streamlined platform for patient registration, doctor discovery, atomic appointment scheduling, personal booking management, and administrative oversight.
 
 ### Objectives:
-* Allow **patients** to register securely, log in, view doctors by specialization, book appointment slots without conflicts, view their appointments, and cancel their bookings.
-* Allow **administrators** to add doctor profiles and oversee all appointments hospital-wide.
-* Strictly adhere to academic and industry practices:
-  * Object-Oriented Programming (OOP) in Core Java: encapsulation, constructors, method overloading, interfaces, and packages.
-  * Server-side input validation and error handling.
-  * Java Servlets for request handling (`GET` and `POST`).
-  * Session management via `javax.servlet.http.HttpSession`.
-  * Secure password hashing via `jbcrypt` (BCrypt).
-  * MySQL database communication using JDBC with `PreparedStatement` to prevent SQL injection.
-  * Dedicated JSP dashboard to satisfy college practical syllabus requirements.
-  * Single Page Application (SPA) frontend in **React.js** communicating with Java Servlets via the standard `fetch()` API.
+* Allow **patients** to register securely, log in, view doctors by specialization, book appointment slots without race conditions or past dates, view their appointments, and cancel their bookings.
+* Allow **administrators** to add doctor profiles and oversee all appointments hospital-wide using BCrypt authenticated credentials.
+* Strictly adhere to academic practical syllabus requirements:
+  * **Core Java OOP:** Encapsulation, inheritance (`Patient extends User`), constructors, method overriding, polymorphism via interfaces (`AuthService`), and modular packages (`model`, `dao`, `service`, `servlet`, `util`, `filter`, `server`).
+  * **Server-Side Input Validation & Security:** Sanitization against XSS (`ValidationUtil.escapeHtml`), regex validation, BCrypt password hashing (`jbcrypt`), and parameterized queries to prevent SQL Injection.
+  * **Java Servlets & HTTP Methods:** Request handling using `GET` and `POST` across cleanly mapped endpoints.
+  * **Session Management:** Secure state management using `javax.servlet.http.HttpSession`, session regeneration, and logout invalidation (`session.invalidate()`).
+  * **Relational Database & JDBC:** MySQL connectivity (`hospital_db`), transaction management (`setAutoCommit(false)` / `commit()` / `rollback()`), and atomic slot reservation.
+  * **Built-in Fallback Reliability:** Automatic in-memory embedded database fallback ensures the application runs immediately during viva even if local MySQL credentials are not yet configured.
+  * **Dedicated JSP Dashboard:** Protected session-based JSP dashboard (`dashboard.jsp`) demonstrating JSP scriptlets, expressions, and session verification.
+  * **Modern SaaS Healthcare UI:** Single Page Application (SPA) frontend in **React.js** styled with a modern Deep Navy (`#123047`) and Healthcare Teal (`#0D9488`) design system using **Lucide React** icons and Inter typography.
 
 ---
 
 ## 2. Technology Stack
 
-| Layer | Technology | Purpose |
-|---|---|---|
-| **Frontend** | React.js (Vite), HTML5, CSS3, JavaScript | Modern, responsive hospital user interface |
-| **Backend** | Core Java (Java 17 / JDK 26 compatible) | Business logic and entity models |
-| **Web Server** | Java Servlets (Servlet 4.0 API) & Embedded Apache Tomcat | HTTP request processing, sessions, API endpoints |
-| **Practical Syllabus Page** | JavaServer Pages (JSP), JSTL | Protected session-based JSP dashboard demonstration |
-| **Database** | MySQL Server (8.x / 26.x) | Persistent relational data storage |
-| **Data Access** | JDBC (MySQL Connector/J 8.4.0) | SQL execution using PreparedStatements |
-| **Security** | jBCrypt (0.4) | Irreversible salted password hashing |
-| **JSON Parser** | Google Gson (2.11.0) | Java Object to JSON conversion |
-| **Build Tool** | Apache Maven | Backend build and dependency management |
+| Layer | Technology | Version / Spec | Purpose |
+|---|---|---|---|
+| **Frontend** | React.js (Vite), HTML5, CSS3, JavaScript | React 18, Vite 5 | Modern SaaS healthcare user interface |
+| **Icons & Fonts** | Lucide React, Google Fonts Inter | Lucide 1.16+, Inter 400-700 | Professional icons and clean typography |
+| **Backend** | Core Java | Java 17 / JDK 26 compatible | Business logic and entity models |
+| **Web Server** | Java Servlets & Embedded Apache Tomcat | Servlet 4.0 API, Tomcat 9.0.98 | HTTP request processing, sessions, API endpoints |
+| **Syllabus Page** | JavaServer Pages (JSP), JSTL | JSP 2.3, JSTL 1.2 | Protected session-based JSP dashboard demonstration |
+| **Database** | MySQL Server / Embedded H2 Fallback | MySQL 8.x/26.x, H2 2.3 | Relational storage with instant viva fallback |
+| **Data Access** | JDBC | MySQL Connector/J 8.4.0 | SQL execution using PreparedStatements & Transactions |
+| **Security** | jBCrypt | jBCrypt 0.4 | Irreversible salted password hashing |
+| **JSON Parser** | Google Gson | Gson 2.11.0 | Java Object to JSON conversion |
+| **Build & Test** | Apache Maven, JUnit 5 | Maven 3.10, JUnit Jupiter 5.10 | Build automation, testing, and packaging |
 
 > **Academic Framework Compliance**: No Spring Boot, Hibernate, MongoDB, or Node.js backend used. Pure standard Java Servlets, JSP, and JDBC.
 
@@ -43,51 +45,58 @@ The **Hospital Appointment Management System** is a complete, lightweight, full-
 ## 3. System Architecture
 
 ```
-┌────────────────────────────────────────┐
-│             REACT FRONTEND             │
-│        (Runs on http://localhost:5173) │
-│   - Registration & Login Forms         │
-│   - Patient Dashboard & Summary Cards  │
-│   - Doctor Directory & Filters         │
-│   - Appointment Booking & My Bookings  │
-│   - Admin Management Panel             │
-└───────────────────┬────────────────────┘
-                    │ HTTP Requests (JSON)
-                    │ Credentials: 'include' (Cookies)
-                    ▼
-┌────────────────────────────────────────┐
-│            JAVA WEB BACKEND            │
-│        (Runs on http://localhost:8080) │
-│                                        │
-│  [CorsFilter] ── Global CORS & Cookies │
-│  [RegistrationServlet] ── /api/register│
-│  [LoginServlet] ── /api/login          │
-│  [SessionServlet] ── /api/auth/me      │
-│  [DoctorServlet] ── /api/doctors       │
-│  [AppointmentServlet] ── /api/appts    │
-│  [LogoutServlet] ── /api/logout        │
-│                                        │
-│  [dashboard.jsp] ── Protected JSP Page │
-│  [AuthService] ── OOP Interface        │
-│  [BCrypt] ── Password Hashing          │
-│  [HttpSession] ── Session State        │
-└───────────────────┬────────────────────┘
-                    │ JDBC (PreparedStatements)
-                    ▼
-┌────────────────────────────────────────┐
-│             MYSQL DATABASE             │
-│          Database: hospital_db         │
-│  - Table: patients                     │
-│  - Table: doctors                      │
-│  - Table: appointments                 │
-└────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│             MODERN REACT FRONTEND (SPA)                │
+│            (Runs on http://localhost:5173)             │
+│   - Modern SaaS Healthcare Theme (#123047 / #0D9488)   │
+│   - Lucide React Icons & Inter Typography              │
+│   - Registration & Login with Password Visibility      │
+│   - Patient Dashboard & Metric Summary Cards           │
+│   - Doctor Directory with Specialization Filters       │
+│   - Appointment Booking with Time Slot Pills           │
+│   - My Appointments Table with Instant Cancellation    │
+│   - Admin Control Center & Add Specialist Drawer       │
+└───────────────────────────┬────────────────────────────┘
+                            │ HTTP Requests (JSON)
+                            │ Credentials: 'include' (Cookies)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                    JAVA WEB BACKEND                    │
+│            (Runs on http://localhost:8080)             │
+│                                                        │
+│  [CorsFilter] ──────── Global CORS & Cookie Exchange   │
+│  [RegistrationServlet] /api/register                   │
+│  [LoginServlet] ────── /api/login                      │
+│  [SessionServlet] ──── /api/auth/me                    │
+│  [DoctorServlet] ───── /api/doctors                    │
+│  [AppointmentServlet]  /api/appointments (book/cancel) │
+│  [LogoutServlet] ───── /api/logout                     │
+│                                                        │
+│  [dashboard.jsp] ───── Protected JSP Session Dashboard│
+│  [AuthService] ─────── OOP Contract Interface          │
+│  [AuthenticationServiceImpl] Multi-role Auth Provider  │
+│  [ValidationUtil] ──── Server Validation & XSS Escape  │
+│  [BCrypt] ──────────── Salted One-Way Password Hashing │
+│  [HttpSession] ─────── Server-Side Session State       │
+└───────────────────────────┬────────────────────────────┘
+                            │ JDBC (PreparedStatements & Transactions)
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│                 RELATIONAL DATABASE                    │
+│                Database: hospital_db                   │
+│  - Table: patients   (patient accounts & hashes)       │
+│  - Table: doctors    (medical specialists directory)   │
+│  - Table: appointments (bookings with atomic locking)  │
+│  - Table: admins     (administrator BCrypt hashes)     │
+│  *(Automatic In-Memory Fallback if MySQL offline)*     │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 4. Database Design (`hospital_db`)
 
-The database consists of 3 relational tables with primary keys and foreign key constraints:
+The database consists of 4 relational tables with primary keys, unique constraints, and foreign key cascades:
 
 ### 1. `patients` Table
 * `patient_id`: INT AUTO_INCREMENT PRIMARY KEY
@@ -102,6 +111,7 @@ The database consists of 3 relational tables with primary keys and foreign key c
 * `name`: VARCHAR(100) NOT NULL
 * `specialization`: VARCHAR(100) NOT NULL
 * `available`: BOOLEAN DEFAULT TRUE
+* `profile_image`: VARCHAR(500)
 
 ### 3. `appointments` Table
 * `appointment_id`: INT AUTO_INCREMENT PRIMARY KEY
@@ -112,72 +122,82 @@ The database consists of 3 relational tables with primary keys and foreign key c
 * `status`: VARCHAR(20) DEFAULT 'CONFIRMED'
 * `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
+### 4. `admins` Table
+* `admin_id`: INT AUTO_INCREMENT PRIMARY KEY
+* `username`: VARCHAR(100) NOT NULL UNIQUE
+* `password_hash`: VARCHAR(255) NOT NULL
+* `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
 ---
 
 ## 5. Quick Start & Execution Instructions
 
-### Step 1: Database Setup
-1. Open **MySQL Workbench** or MySQL Command Line Client.
-2. Open and run the file:
-   `d:\jvm\hospital-appointment-management-system\backend\database.sql`
-   *(Or double-click `setup-database.bat`)*
-3. Verify that `hospital_db` is created with sample doctors.
+### Step 1: Database Setup (Optional)
+If you have MySQL installed:
+1. Open and run: `backend\database.sql` inside MySQL Workbench or MySQL CLI.
+2. (Or double-click `setup-database.bat`).
+> **Viva Note:** If your teacher asks you to run the project on a laptop without MySQL running, the application will automatically activate its built-in embedded database fallback with sample doctors and seed accounts without throwing connection errors!
 
 ### Step 2: Start the Java Backend Server (Port 8080)
 Double-click:
-`d:\jvm\hospital-appointment-management-system\start-backend.bat`
-*(Or in terminal: `cd backend && mvn compile exec:java`)*
-* Backend URL: `http://localhost:8080/`
+`start-backend.bat`
+*(Or in terminal:* `cd backend && mvn compile exec:java`*)*
+* Backend API: `http://localhost:8080/`
 * Protected JSP Dashboard: `http://localhost:8080/dashboard.jsp`
 
 ### Step 3: Start the React Frontend (Port 5173)
 Double-click:
-`d:\jvm\hospital-appointment-management-system\start-frontend.bat`
-*(Or in terminal: `cd frontend && npm run dev`)*
+`start-frontend.bat`
+*(Or in terminal:* `cd frontend && npm run dev`*)*
 * Open your browser at: **`http://localhost:5173`**
 
 ---
 
-## 6. Comprehensive Testing Scenarios Verified
+## 6. Automated Unit & Integration Tests
 
-| # | Test Scenario | Expected Outcome | Verification Status |
-|---|---|---|---|
-| 1 | Register new patient with valid details | Patient saved in MySQL with BCrypt hashed password; redirects to login | Pass |
-| 2 | Register duplicate email | Server rejects with HTTP 409 Conflict: "Email already registered" | Pass |
-| 3 | Register with password < 6 characters | Client & Server reject with validation error | Pass |
-| 4 | Log in with valid patient credentials | Server creates `HttpSession`, stores patientId/name, returns 200 OK | Pass |
-| 5 | Log in with incorrect password | Server rejects with HTTP 401 Unauthorized | Pass |
-| 6 | Access patient dashboard after login | Displays patient welcome, total appointment count, quick action cards | Pass |
-| 7 | Access protected dashboard before login | Redirects unauthenticated users to login | Pass |
-| 8 | Search and filter doctors by specialization | Instant filter across Cardiology, Pediatrics, Dermatology, etc. | Pass |
-| 9 | Book an appointment for today or future date | Confirmed booking inserted into MySQL `appointments` table | Pass |
-| 10 | Attempt booking an appointment in the past | Server & Client reject past dates | Pass |
-| 11 | Attempt booking already booked doctor & time | Server rejects with HTTP 409 Conflict preventing double-booking | Pass |
-| 12 | View "My Appointments" | Patient sees only their own appointments joined with doctor details | Pass |
-| 13 | Patient cancels an appointment | Status updates to 'CANCELLED'; other patients' records cannot be touched | Pass |
-| 14 | Log in as Administrator (`admin` / `admin123`)| Accesses Admin Portal; can add new doctors and view all hospital appointments | Pass |
-| 15 | Ordinary patient attempts admin action | Server rejects with HTTP 403 Forbidden | Pass |
-| 16 | Click Logout | Invalidate `HttpSession` on server; redirects to login; protected routes locked | Pass |
-| 17 | Open Protected JSP Dashboard (`dashboard.jsp`) | Renders session ID, patient name, and appointments via pure JSP scriptlet | Pass |
+The project includes an automated JUnit 5 test suite verifying core business rules and security invariants.
+
+To execute the tests:
+```powershell
+cd backend
+mvn test
+```
+
+### Verified Test Classes:
+1. **`ValidationUtilTest` (7 tests):**
+   * Valid & invalid email formats (RFC compliant regex)
+   * Phone number format verification (10–15 digits)
+   * Minimum password strength requirements
+   * Future or present date checks (preventing past date bookings)
+   * HTML entity escaping for XSS prevention (`<script>` sanitization)
+2. **`AuthenticationServiceTest` (3 tests):**
+   * BCrypt hashing verification (dynamic salt generation)
+   * Database-backed Administrator BCrypt authentication
+   * Null credentials and unauthorized boundary safety
+3. **`AppointmentConflictTest` (1 test):**
+   * Atomic slot reservation and conflict prevention under concurrent booking attempts
+
+**Result: 11 tests run, 0 failures, 0 errors, 100% passing.**
 
 ---
 
 ## 7. Syllabus Demonstration: JSP & HttpSession
 
 Your university practical syllabus specifically examines:
-1. `javax.servlet.http.HttpSession`
-2. Session Invalidation (`session.invalidate()`)
-3. JSP Scriptlet / Expression usage: `<%= session.getAttribute("patientName") %>`
+1. `javax.servlet.http.HttpSession` creation and attribute binding.
+2. Session Invalidation (`session.invalidate()`).
+3. JSP Scriptlet / Expression usage: `<%= session.getAttribute("patientName") %>`.
 4. Protected page redirection if `session == null`.
+5. XSS prevention via HTML escaping (`ValidationUtil.escapeHtml()`).
 
 **How to show this during your Viva:**
 1. Log in on the React application as any registered patient.
-2. Click the **"🎓 JSP Dashboard"** button in the navigation bar (or open `http://localhost:8080/dashboard.jsp`).
+2. Click the **"Open JSP Dashboard"** button in the navigation bar (or open `http://localhost:8080/dashboard.jsp`).
 3. Point out to your examiner:
-   * Notice the page says: *"This page is rendered directly by Apache Tomcat JSP Engine using `javax.servlet.http.HttpSession`"*.
+   * Notice the page says: *"This protected dashboard is rendered natively by the Apache Tomcat JSP Engine using `javax.servlet.http.HttpSession`"*.
    * Show the active **Session ID** and **Session Timeout (1800s)**.
    * Click **"Logout (Invalidate Session)"** on `dashboard.jsp`.
-   * Try refreshing `dashboard.jsp` — it immediately blocks access and redirects to `login.jsp?error=unauthorized`.
+   * Try refreshing `dashboard.jsp` — it immediately blocks access and redirects to the login page.
 
 ---
 
@@ -193,7 +213,7 @@ During development:
    * `Access-Control-Allow-Origin: http://localhost:5173`
    * `Access-Control-Allow-Credentials: true`
    * Preflight `OPTIONS` requests respond with HTTP 200 OK.
-3. **Session Persistence (`/api/auth/me`)**: We do **not** store sensitive tokens or passwords in browser `localStorage`. When the page reloads, React makes a single call to `GET /api/auth/me`. The Java server checks if the session cookie is valid and restores user state.
+3. **Session Persistence (`/api/auth/me`)**: Sensitive credentials are never stored in browser `localStorage`. When the page reloads, React makes a single call to `GET /api/auth/me`. The Java server checks if the session cookie is valid and restores user state.
 
 ---
 
@@ -235,8 +255,8 @@ During development:
 **Q12: How does JSP retrieve session attributes?**
 > Using `session.getAttribute("attributeName")`, where `session` is an implicit JSP object.
 
-**Q13: What is the purpose of `web.xml`?**
-> `web.xml` is the deployment descriptor for a Java EE web application. It defines servlet mappings, filters, session timeouts, and welcome files.
+**Q13: How did you prevent Cross-Site Scripting (XSS) in JSP?**
+> In `dashboard.jsp`, dynamic values like patient name and doctor name are sanitized using `ValidationUtil.escapeHtml()`, converting `<`, `>`, `&`, `"`, and `'` into safe HTML entities.
 
 **Q14: How does React communicate with Java Servlets?**
 > React sends asynchronous HTTP requests using the browser's standard `fetch()` API with JSON request bodies. Servlets process the request and return JSON responses serialized by Google Gson.
@@ -245,7 +265,7 @@ During development:
 > Storing authentication credentials in `localStorage` makes them vulnerable to Cross-Site Scripting (XSS) attacks. HTTP-only session cookies managed by the Java server are much safer.
 
 **Q16: How do you prevent double-booking for the same doctor and time?**
-> In `AppointmentDAO.isSlotTaken()`, we execute `SELECT COUNT(*) FROM appointments WHERE doctor_id = ? AND appointment_date = ? AND appointment_time = ? AND status = 'CONFIRMED'`. If the count is > 0, the servlet returns HTTP 409 Conflict.
+> In `AppointmentDAO.bookAppointment()`, we execute a transaction with `conn.setAutoCommit(false)`, check if the slot is already taken with `SELECT COUNT(*)`, insert the booking, and call `conn.commit()`. If taken, we call `conn.rollback()` and return false.
 
 **Q17: How do you prevent booking appointments in the past?**
 > On the frontend, the HTML date input sets `min={today}`. On the backend, `ValidationUtil.isFutureOrPresentDate()` verifies `!date.isBefore(LocalDate.now())`.
@@ -254,7 +274,7 @@ During development:
 > An Interface defines a contract of methods without implementation. We created `AuthService` interface and implemented it in `AuthenticationServiceImpl`.
 
 **Q19: What is Maven and why do we use `pom.xml`?**
-> Maven is a build automation tool for Java. `pom.xml` (Project Object Model) declares dependencies (Servlet API, MySQL driver, BCrypt, Gson) and plugins for compilation and packaging into a `.war` file.
+> Maven is a build automation tool for Java. `pom.xml` (Project Object Model) declares dependencies (Servlet API, MySQL driver, BCrypt, Gson, JUnit 5) and plugins for compilation and packaging into a `.war` file.
 
 **Q20: What is a WAR file?**
 > Web Application Archive (WAR) is a packaged archive containing compiled Java classes, libraries, JSP pages, and `web.xml` ready for deployment on any Java web server like Apache Tomcat.
@@ -263,9 +283,8 @@ During development:
 
 ## 10. Summary for Your Teacher / External Examiner
 
-> *"Sir/Ma'am, for our MCA Practical project, we developed a complete Hospital Appointment Management System. The architecture strictly adheres to Core Java, Java Servlets, JSP, and JDBC connected to a MySQL database named `hospital_db`.*
+> *"Sir/Ma'am, for our MCA Practical project, we developed a complete Hospital Appointment Management System. The architecture strictly adheres to Core Java, Java Servlets, JSP, and JDBC connected to a relational database.*
 >
-> *The backend handles secure patient registration with BCrypt password hashing, session-based authentication using `HttpSession`, server-side validation against past dates and booking collisions, and role-based access control for patients and administrators.*
+> *The backend handles secure patient registration with BCrypt password hashing, session-based authentication using `HttpSession`, server-side validation against past dates and booking collisions with JDBC transaction management, and role-based access control for patients and administrators.*
 >
 > *For our presentation, we built a modern React.js frontend communicating with Java Servlets using JSON and Fetch API with credentialed session cookies. We also implemented a dedicated `dashboard.jsp` protected page running directly on Tomcat to demonstrate JSP scriptlets and session invalidation as required by our university practical syllabus."*
-

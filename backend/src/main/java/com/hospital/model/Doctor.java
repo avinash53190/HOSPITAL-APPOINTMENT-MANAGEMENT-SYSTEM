@@ -8,6 +8,7 @@ public class Doctor {
     private String name;
     private String specialization;
     private boolean available;
+    private String profileImage;
 
     public Doctor() {
     }
@@ -19,10 +20,15 @@ public class Doctor {
     }
 
     public Doctor(int doctorId, String name, String specialization, boolean available) {
+        this(doctorId, name, specialization, available, null);
+    }
+
+    public Doctor(int doctorId, String name, String specialization, boolean available, String profileImage) {
         this.doctorId = doctorId;
         this.name = name;
         this.specialization = specialization;
         this.available = available;
+        this.profileImage = profileImage;
     }
 
     public int getDoctorId() {
@@ -57,6 +63,14 @@ public class Doctor {
         this.available = available;
     }
 
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
     @Override
     public String toString() {
         return "Doctor{" +
@@ -67,4 +81,3 @@ public class Doctor {
                 '}';
     }
 }
-
