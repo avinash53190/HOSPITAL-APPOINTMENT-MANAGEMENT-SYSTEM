@@ -7,6 +7,6 @@ echo ========================================================
 echo  Starting Hospital Appointment System React Frontend...
 echo  URL: http://localhost:5173/
 echo ========================================================
-npm.cmd run dev
+npm.cmd run dev -- --host
 pause
 
