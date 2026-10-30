@@ -21,6 +21,8 @@ import java.io.IOException;
  * URLs: /api/login, /api/admin/setup
  * Method: POST
  * Manages user authentication, session creation, and secure first-time admin setup.
+ * Enforces server-side validation, BCrypt password hashing, and returns
+ * structured JSON responses with appropriate HTTP status codes.
  */
 @WebServlet({"/api/login", "/api/admin/setup"})
 public class LoginServlet extends HttpServlet {
@@ -34,73 +36,89 @@ public class LoginServlet extends HttpServlet {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = request.getReader()) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
-            }
-        }
-
-        JsonObject json;
         try {
-            json = gson.fromJson(sb.toString(), JsonObject.class);
-        } catch (Exception e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"success\":false,\"message\":\"Invalid JSON request body.\"}");
-            return;
-        }
+            StringBuilder sb = new StringBuilder();
+            try (BufferedReader reader = request.getReader()) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+            }
 
-        if (json == null) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"success\":false,\"message\":\"Missing request data.\"}");
-            return;
-        }
-
-        String path = request.getServletPath();
-
-        // Branch 1: Safe First-Time Administrator Setup (/api/admin/setup)
-        if ("/api/admin/setup".equals(path)) {
-            if (authService.hasAnyAdmin()) {
-                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                response.getWriter().write("{\"success\":false,\"message\":\"Administrator account is already initialized. Initial setup is locked.\"}");
+            String body = sb.toString().trim();
+            if (body.isEmpty()) {
+                sendJson(response, HttpServletResponse.SC_BAD_REQUEST, false, "Request body cannot be empty.");
                 return;
             }
 
-            String adminUser = json.has("username") ? json.get("username").getAsString() : "";
-            String adminPass = json.has("password") ? json.get("password").getAsString() : "";
-
-            if (ValidationUtil.isNullOrEmpty(adminUser) || ValidationUtil.isNullOrEmpty(adminPass)) {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.getWriter().write("{\"success\":false,\"message\":\"Administrator username and password are required.\"}");
+            JsonObject json;
+            try {
+                json = gson.fromJson(body, JsonObject.class);
+            } catch (Exception e) {
+                sendJson(response, HttpServletResponse.SC_BAD_REQUEST, false, "Invalid JSON request body.");
                 return;
             }
 
-            if (!ValidationUtil.isValidPassword(adminPass)) {
-                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.getWriter().write("{\"success\":false,\"message\":\"Administrator password must be at least 6 characters.\"}");
+            if (json == null) {
+                sendJson(response, HttpServletResponse.SC_BAD_REQUEST, false, "Missing request data.");
                 return;
             }
 
-            boolean setupSuccess = authService.setupInitialAdmin(adminUser.trim(), adminPass.trim());
-            if (setupSuccess) {
-                response.setStatus(HttpServletResponse.SC_CREATED);
-                response.getWriter().write("{\"success\":true,\"message\":\"Initial administrator created successfully with BCrypt encryption. You can now log in.\"}");
-            } else {
-                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                response.getWriter().write("{\"success\":false,\"message\":\"Failed to create administrator account.\"}");
+            String path = request.getServletPath();
+
+            // Branch 1: Safe First-Time Administrator Setup (/api/admin/setup)
+            if ("/api/admin/setup".equals(path)) {
+                handleAdminSetup(json, response);
+                return;
             }
+
+            // Branch 2: Standard Login (/api/login)
+            handleLogin(request, response, json);
+
+        } catch (Throwable t) {
+            System.err.println("[LoginServlet] Internal error during authentication: " + t.getClass().getSimpleName() + " - " + t.getMessage());
+            sendJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, false, "An unexpected server error occurred during authentication.");
+        }
+    }
+
+    private void handleAdminSetup(JsonObject json, HttpServletResponse response) throws IOException {
+        if (authService.hasAnyAdmin()) {
+            sendJson(response, HttpServletResponse.SC_FORBIDDEN, false, "Administrator account is already initialized. Initial setup is locked.");
             return;
         }
 
-        // Branch 2: Standard Login (/api/login)
-        String email = json.has("email") ? json.get("email").getAsString() : "";
-        String password = json.has("password") ? json.get("password").getAsString() : "";
-        String role = json.has("role") ? json.get("role").getAsString() : "PATIENT";
+        String adminUser = getSafeString(json, "username");
+        String adminPass = getSafeString(json, "password");
+
+        if (ValidationUtil.isNullOrEmpty(adminUser) || ValidationUtil.isNullOrEmpty(adminPass)) {
+            sendJson(response, HttpServletResponse.SC_BAD_REQUEST, false, "Administrator username and password are required.");
+            return;
+        }
+
+        if (!ValidationUtil.isValidPassword(adminPass)) {
+            sendJson(response, HttpServletResponse.SC_BAD_REQUEST, false, "Administrator password must be at least 6 characters.");
+            return;
+        }
+
+        System.out.println("[LoginServlet] Setting up initial administrator: " + sanitizeForLog(adminUser));
+        boolean setupSuccess = authService.setupInitialAdmin(adminUser, adminPass);
+        if (setupSuccess) {
+            sendJson(response, HttpServletResponse.SC_CREATED, true, "Initial administrator created successfully with BCrypt encryption. You can now log in.");
+        } else {
+            sendJson(response, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, false, "Failed to create administrator account. Please check database connectivity.");
+        }
+    }
+
+    private void handleLogin(HttpServletRequest request, HttpServletResponse response, JsonObject json) throws IOException {
+        String email = getSafeString(json, "email");
+        String password = getSafeString(json, "password");
+        String role = getSafeString(json, "role");
+        if (role.isEmpty()) role = "PATIENT";
+
+        System.out.println("[LoginServlet] Login attempt for user: " + sanitizeForLog(email) + " (Role: " + role + ")");
 
         if (ValidationUtil.isNullOrEmpty(email) || ValidationUtil.isNullOrEmpty(password)) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"success\":false,\"message\":\"Email/username and password are required.\"}");
+            sendJson(response, HttpServletResponse.SC_BAD_REQUEST, false, "Email/username and password are required.");
             return;
         }
 
@@ -108,13 +126,16 @@ public class LoginServlet extends HttpServlet {
         if ("ADMIN".equalsIgnoreCase(role)) {
             if (!authService.hasAnyAdmin()) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                response.getWriter().write("{\"success\":false,\"needsInitialSetup\":true,\"message\":\"No administrator account exists yet. Configure the ADMIN_PASSWORD environment variable or initialize the first administrator.\"}");
+                JsonObject res = new JsonObject();
+                res.addProperty("success", false);
+                res.addProperty("needsInitialSetup", true);
+                res.addProperty("message", "No administrator account exists yet. Configure the ADMIN_PASSWORD environment variable or initialize the first administrator.");
+                response.getWriter().write(gson.toJson(res));
                 return;
             }
 
             boolean isAdminValid = authService.authenticateAdmin(email, password);
             if (isAdminValid) {
-                // Invalidate any previous session and create a fresh one to prevent session fixation
                 HttpSession oldSession = request.getSession(false);
                 if (oldSession != null) oldSession.invalidate();
 
@@ -133,20 +154,19 @@ public class LoginServlet extends HttpServlet {
                 userObj.addProperty("role", "ADMIN");
                 res.add("user", userObj);
 
+                System.out.println("[LoginServlet] Administrator authenticated successfully: " + sanitizeForLog(email));
                 response.setStatus(HttpServletResponse.SC_OK);
                 response.getWriter().write(gson.toJson(res));
-                return;
             } else {
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("{\"success\":false,\"message\":\"Invalid Administrator credentials.\"}");
-                return;
+                System.out.println("[LoginServlet] Administrator authentication failed for: " + sanitizeForLog(email));
+                sendJson(response, HttpServletResponse.SC_UNAUTHORIZED, false, "Invalid Administrator credentials.");
             }
+            return;
         }
 
         // Patient Login Branch
         Patient patient = authService.authenticatePatient(email, password);
         if (patient != null) {
-            // Invalidate any previous session and create a fresh one
             HttpSession oldSession = request.getSession(false);
             if (oldSession != null) oldSession.invalidate();
 
@@ -169,11 +189,32 @@ public class LoginServlet extends HttpServlet {
             userObj.addProperty("role", "PATIENT");
             res.add("user", userObj);
 
+            System.out.println("[LoginServlet] Patient authenticated successfully: " + sanitizeForLog(email));
             response.setStatus(HttpServletResponse.SC_OK);
             response.getWriter().write(gson.toJson(res));
         } else {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("{\"success\":false,\"message\":\"Invalid email or password.\"}");
+            System.out.println("[LoginServlet] Patient authentication failed for: " + sanitizeForLog(email));
+            sendJson(response, HttpServletResponse.SC_UNAUTHORIZED, false, "Invalid email or password.");
         }
+    }
+
+    private void sendJson(HttpServletResponse response, int statusCode, boolean success, String message) throws IOException {
+        response.setStatus(statusCode);
+        JsonObject obj = new JsonObject();
+        obj.addProperty("success", success);
+        obj.addProperty("message", message);
+        response.getWriter().write(gson.toJson(obj));
+    }
+
+    private String getSafeString(JsonObject json, String field) {
+        if (json.has(field) && !json.get(field).isJsonNull()) {
+            return json.get(field).getAsString().trim();
+        }
+        return "";
+    }
+
+    private String sanitizeForLog(String val) {
+        if (val == null) return "<null>";
+        return val.replaceAll("[\\r\\n]", "").trim();
     }
 }

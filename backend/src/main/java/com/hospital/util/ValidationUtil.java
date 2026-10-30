@@ -13,7 +13,7 @@ public class ValidationUtil {
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     private static final Pattern PHONE_PATTERN =
-            Pattern.compile("^[0-9]{10,15}$");
+            Pattern.compile("^\\+?[0-9]{10,15}$");
 
     /**
      * Checks if a string is null or empty/whitespace.
@@ -31,11 +31,12 @@ public class ValidationUtil {
     }
 
     /**
-     * Validates phone number (10 to 15 digits).
+     * Validates phone number (10 to 15 digits, optionally prefixed with '+').
      */
     public static boolean isValidPhone(String phone) {
         if (isNullOrEmpty(phone)) return false;
-        return PHONE_PATTERN.matcher(phone.trim()).matches();
+        String cleaned = phone.trim().replaceAll("[\\s\\-]", "");
+        return PHONE_PATTERN.matcher(cleaned).matches();
     }
 
     /**

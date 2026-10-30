@@ -4,7 +4,7 @@
  * Tomcat's JSESSIONID cookie is attached to every request.
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api' : 'http://localhost:8080/api');
 
 async function fetchJSON(url, options = {}) {
   const config = {
@@ -17,11 +17,28 @@ async function fetchJSON(url, options = {}) {
     }
   };
 
-  const response = await fetch(url, config);
-  const data = await response.json().catch(() => ({}));
+  let response;
+  try {
+    response = await fetch(url, config);
+  } catch (networkError) {
+    throw new Error(
+      'Cannot connect to the backend server. Please ensure the Java Tomcat backend is started (run start-backend.bat on port 8080).'
+    );
+  }
+
+  let data = {};
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    data = await response.json().catch(() => ({}));
+  } else {
+    const rawText = await response.text().catch(() => '');
+    if (rawText && !rawText.includes('<!DOCTYPE')) {
+      data = { message: rawText.trim() };
+    }
+  }
 
   if (!response.ok) {
-    const errorMsg = data.message || `Request failed with status ${response.status}`;
+    const errorMsg = data.message || `Server error (${response.status}): The backend could not complete the request.`;
     throw new Error(errorMsg);
   }
 

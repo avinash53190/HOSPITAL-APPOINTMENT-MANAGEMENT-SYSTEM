@@ -38,8 +38,9 @@ export default function Register({ onNavigate, onShowMessage }) {
       setError('Full Name is required.');
       return;
     }
-    if (!formData.email.trim() || !formData.email.includes('@')) {
-      setError('Please provide a valid email address.');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      setError('Please provide a complete email address (e.g. name@example.com).');
       return;
     }
     if (!formData.phone.trim() || formData.phone.length < 10) {

@@ -26,6 +26,7 @@ public class DBConnection {
     private static boolean fallbackInitialized = false;
     private static boolean fallbackActive = false;
     private static boolean statusLogged = false;
+    private static boolean mysqlSchemaChecked = false;
 
     static {
         loadConfiguration();
@@ -103,6 +104,9 @@ public class DBConnection {
 
         try {
             Connection conn = DriverManager.getConnection(url, user, password);
+            if (!mysqlSchemaChecked) {
+                ensureMysqlSchema(conn);
+            }
             if (!statusLogged) {
                 System.out.println("================================================================================");
                 System.out.println(" [DATABASE STATUS] Active Database: PERSISTENT MySQL");
@@ -129,6 +133,45 @@ public class DBConnection {
                 System.err.println("================================================================================");
             }
             return getFallbackConnection();
+        }
+    }
+
+    private static synchronized void ensureMysqlSchema(Connection conn) {
+        if (mysqlSchemaChecked) return;
+        try (Statement st = conn.createStatement()) {
+            st.execute("CREATE TABLE IF NOT EXISTS patients (" +
+                    "patient_id INT AUTO_INCREMENT PRIMARY KEY, " +
+                    "name VARCHAR(100) NOT NULL, " +
+                    "email VARCHAR(100) NOT NULL UNIQUE, " +
+                    "phone VARCHAR(20) NOT NULL, " +
+                    "password_hash VARCHAR(255) NOT NULL, " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+            st.execute("CREATE TABLE IF NOT EXISTS doctors (" +
+                    "doctor_id INT AUTO_INCREMENT PRIMARY KEY, " +
+                    "name VARCHAR(100) NOT NULL, " +
+                    "specialization VARCHAR(100) NOT NULL, " +
+                    "available BOOLEAN NOT NULL DEFAULT TRUE, " +
+                    "profile_image VARCHAR(500))");
+
+            st.execute("CREATE TABLE IF NOT EXISTS appointments (" +
+                    "appointment_id INT AUTO_INCREMENT PRIMARY KEY, " +
+                    "patient_id INT NOT NULL, " +
+                    "doctor_id INT NOT NULL, " +
+                    "appointment_date DATE NOT NULL, " +
+                    "appointment_time VARCHAR(20) NOT NULL, " +
+                    "status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMED', " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+            st.execute("CREATE TABLE IF NOT EXISTS admins (" +
+                    "admin_id INT AUTO_INCREMENT PRIMARY KEY, " +
+                    "username VARCHAR(100) NOT NULL UNIQUE, " +
+                    "password_hash VARCHAR(255) NOT NULL, " +
+                    "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+
+            mysqlSchemaChecked = true;
+        } catch (SQLException ex) {
+            System.err.println("[DBConnection] Schema check note: " + sanitizeMessage(ex.getMessage()));
         }
     }
 
