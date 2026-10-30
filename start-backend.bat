@@ -9,6 +9,6 @@ echo  Starting Hospital Appointment System Backend Server...
 echo  URL: http://localhost:8080/
 echo  JSP Protected Dashboard: http://localhost:8080/dashboard.jsp
 echo ========================================================
-mvn compile exec:java
+call mvn.cmd compile exec:java
 pause
 
